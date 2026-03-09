@@ -1,0 +1,121 @@
+#include <MultiFunctionShield.h>
+#include <Arduino_FreeRTOS.h>
+
+void taskBlink1 (void *pvParameters);
+void taskButton1 (void *pvParameters);
+void taskBlink2 (void *pvParameters);
+void taskButton2 (void *pvParameters);
+void taskButton3 (void *pvParameters);
+
+long interval = 500;
+long interval2 = 500;
+
+bool mode = true;   // true = SUM mode, false = SUBTRACTION mode
+
+MultiFunctionShield MFS;
+
+void setup() {
+
+  MFS.begin();
+
+  pinMode(LED_1_PIN, OUTPUT);
+  pinMode(LED_2_PIN, OUTPUT);
+  pinMode(LED_3_PIN, OUTPUT);
+
+  pinMode(BUTTON_1_PIN, INPUT);
+  pinMode(BUTTON_2_PIN, INPUT);
+  pinMode(BUTTON_3_PIN, INPUT);
+
+  digitalWrite(LED_3_PIN, HIGH); // start in SUM mode
+
+  MFS.Display(interval);
+
+  Serial.begin(9600);
+
+  xTaskCreate(taskBlink1, "Blink1", 128, NULL, 1, NULL);
+  xTaskCreate(taskButton1, "Button1", 128, NULL, 1, NULL);
+  xTaskCreate(taskBlink2, "Blink2", 128, NULL, 1, NULL);
+  xTaskCreate(taskButton2, "Button2", 128, NULL, 1, NULL);
+  xTaskCreate(taskButton3, "Button3", 128, NULL, 1, NULL);
+
+  vTaskStartScheduler();
+}
+
+void taskBlink1 (void *pvParameters)
+{
+  while(1)
+  {
+    digitalWrite(LED_1_PIN, HIGH);
+    vTaskDelay(interval / portTICK_PERIOD_MS);
+
+    digitalWrite(LED_1_PIN, LOW);
+    vTaskDelay(interval / portTICK_PERIOD_MS);
+  }
+}
+
+void taskBlink2 (void *pvParameters)
+{
+  while(1)
+  {
+    digitalWrite(LED_2_PIN, HIGH);
+    vTaskDelay(interval2 / portTICK_PERIOD_MS);
+
+    digitalWrite(LED_2_PIN, LOW);
+    vTaskDelay(interval2 / portTICK_PERIOD_MS);
+  }
+}
+
+void taskButton1(void *pvParameters)
+{
+  while(1)
+  {
+    while(digitalRead(BUTTON_1_PIN));
+
+    if(mode)
+      interval += 100;
+    else
+      interval -= 100;
+
+    if(interval < 100) interval = 100;
+
+    vTaskDelay(250 / portTICK_PERIOD_MS);
+    MFS.Display(interval);
+  }
+}
+
+void taskButton2(void *pvParameters)
+{
+  while(1)
+  {
+    while(digitalRead(BUTTON_2_PIN));
+
+    if(mode)
+      interval2 += 100;
+    else
+      interval2 -= 100;
+
+    if(interval2 < 100) interval2 = 100;
+
+    vTaskDelay(250 / portTICK_PERIOD_MS);
+    MFS.Display(interval2);
+  }
+}
+
+void taskButton3(void *pvParameters)
+{
+  while(1)
+  {
+    while(digitalRead(BUTTON_3_PIN));
+
+    mode = !mode;   // toggle mode
+
+    if(mode)
+      digitalWrite(LED_3_PIN, HIGH);   // SUM mode
+    else
+      digitalWrite(LED_3_PIN, LOW);    // SUBTRACT mode
+
+    vTaskDelay(250 / portTICK_PERIOD_MS);
+  }
+}
+
+void loop() {}
